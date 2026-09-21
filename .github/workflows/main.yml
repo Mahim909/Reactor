@@ -16,14 +16,13 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Add All Required NuGet Feeds
+      - name: Add NuGet Feeds
         run: |
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
-          dotnet nuget add source https://nuget.il2cpp.dev/v3/index.json -n Il2Cpp || true
 
       - name: Restore Project Dependencies
-        run: dotnet restore Reactor/Reactor.csproj --disable-parallel
+        run: dotnet restore Reactor/Reactor.csproj --ignore-failed-sources
 
       - name: Build Reactor Core
         run: dotnet build Reactor/Reactor.csproj -c Release --no-restore -p:CheckEolTargetFramework=false || dotnet build Reactor/Reactor.csproj -c Release -p:CheckEolTargetFramework=false
