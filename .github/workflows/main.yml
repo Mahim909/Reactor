@@ -21,13 +21,19 @@ jobs:
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Restore Project Dependencies
-        run: dotnet restore Reactor/Reactor.csproj --ignore-failed-sources
+      - name: Find and Restore Solution
+        run: |
+          SLN_FILE=$(find . -name "*.sln" | head -n 1)
+          echo "Restoring Solution: $SLN_FILE"
+          dotnet restore "$SLN_FILE" --ignore-failed-sources
 
-      - name: Build Reactor Core
-        run: dotnet build Reactor/Reactor.csproj -c Release --no-restore -p:CheckEolTargetFramework=false || dotnet build Reactor/Reactor.csproj -c Release -p:CheckEolTargetFramework=false
+      - name: Find and Build Solution
+        run: |
+          SLN_FILE=$(find . -name "*.sln" | head -n 1)
+          echo "Building Solution: $SLN_FILE"
+          dotnet build "$SLN_FILE" -c Release --no-restore -p:CheckEolTargetFramework=false
 
-      - name: Upload Mod DLL
+      - name: Upload Mod Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
