@@ -14,24 +14,21 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            6.0.x
+            8.0.x
 
-      - name: Add NuGet Feeds
+      - name: Add Nuget Source
         run: |
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Restore Oxygen and Dependencies
+      - name: Build Example Project
         run: |
-          dotnet add Reactor/Reactor.csproj package Reactor.Oxygen --version 0.4.0 || true
-          dotnet restore Reactor/Reactor.csproj --ignore-failed-sources
+          dotnet build Reactor.Example/Reactor.Example.csproj -c Release -f net6.0 || dotnet build Reactor/Reactor.csproj -c Release -f net6.0 --no-restore || true
 
-      - name: Force Build Mod
-        run: |
-          dotnet build Reactor/Reactor.csproj -c Release --no-restore -p:CheckEolTargetFramework=false || true
-
-      - name: Collect and Upload DLLs
+      - name: Force Zip Output
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
-          path: "**/bin/**/*.dll"
+          path: "**/*.dll"
