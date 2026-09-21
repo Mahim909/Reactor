@@ -21,18 +21,13 @@ jobs:
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Restore Dependencies
-        run: dotnet restore Reactor.sln
+      - name: Restore Project Dependencies
+        run: dotnet restore Reactor/Reactor.csproj
 
-      - name: Build Solution
-        run: dotnet build Reactor.sln -c Release --no-restore
+      - name: Build Core Project
+        run: dotnet build Reactor/Reactor.csproj -c Release --no-restore
 
       - uses: actions/upload-artifact@v4
         with:
           name: Reactor.dll
           path: Reactor/bin/Release/net6.0/Reactor.dll
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Reactor.Example.dll
-          path: Reactor.Example/bin/Release/net6.0/Reactor.Example.dll
