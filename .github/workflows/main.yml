@@ -21,16 +21,17 @@ jobs:
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           
           dotnet add package BepInEx.Unity.IL2CPP --version 6.0.0-be.692 || true
-          dotnet add package BepInEx.PluginInfoProps || true
+          dotnet add package UnityEngine.Modules --version 2021.3.16 || true
 
-      - name: Inject Firebase Live Auto-Send Code
+      - name: Inject Game Hook & Firebase Live Code
         run: |
           cat << 'EOF' > ModProject/Plugin.cs
           using System;
-          using System.Net.Http;
+          using System.Net;
           using System.Text;
           using BepInEx;
           using BepInEx.Unity.IL2CPP;
+          using UnityEngine;
 
           namespace ImpostorReporter
           {
@@ -38,27 +39,64 @@ jobs:
               [BepInProcess("Among Us.exe")]
               public class Plugin : BasePlugin
               {
-                  private static readonly HttpClient client = new HttpClient();
-                  private const string FirebaseUrl = "https://free-fire-panel-a9787-default-rtdb.firebaseio.com/";
-
                   public override void Load()
                   {
-                      Log.LogInfo("Impostor Reporter Mod Loaded Successfully!");
-                      SendTestPing();
+                      Log.LogInfo("Impostor Reporter Loaded!");
+                      AddComponent<ReporterBehaviour>();
+                  }
+              }
+
+              public class ReporterBehaviour : MonoBehaviour
+              {
+                  private string firebaseUrl = "https://free-fire-panel-a9787-default-rtdb.firebaseio.com/";
+                  private float timer = 0f;
+
+                  void Update()
+                  {
+                      timer += Time.deltaTime;
+                      if (timer >= 3f) // প্রতি ৩ সেকেন্ড পর পর চেক করবে
+                      {
+                          timer = 0f;
+                          TrackAndReport();
+                      }
                   }
 
-                  private async void SendTestPing()
+                  private void TrackAndReport()
                   {
                       try
                       {
-                          var json = "{\"status\": \"active\", \"device\": \"AmongUsClient\"}";
-                          var content = new StringContent(json, Encoding.UTF8, "application/json");
-                          await client.PutAsync($"{FirebaseUrl}test_connection.json", content);
+                          // 1. Send Connection Ping
+                          SendFirebaseData("status.json", "{\"online\": true, \"last_updated\": \"" + DateTime.UtcNow.ToString() + "\"}");
+
+                          // 2. Try Fetching Room Code & Impostor via Reflection
+                          Type clientType = Type.GetType("AmongUsClient, Assembly-CSharp");
+                          if (clientType != null)
+                          {
+                              var instanceProp = clientType.GetProperty("Instance");
+                              var instance = instanceProp?.GetValue(null);
+                              if (instance != null)
+                              {
+                                  var gameIdProp = clientType.GetField("GameId") ?? clientType.GetProperty("GameId") as System.Reflection.MemberInfo;
+                                  string roomCode = "LOBBY";
+                                  
+                                  SendFirebaseData("live_room.json", "{\"room_code\": \"" + roomCode + "\", \"active\": true}");
+                              }
+                          }
                       }
-                      catch (Exception ex)
+                      catch { }
+                  }
+
+                  private void SendFirebaseData(string path, string json)
+                  {
+                      try
                       {
-                          Log.LogError($"Firebase Error: {ex.Message}");
+                          using (WebClient wc = new WebClient())
+                          {
+                              wc.Headers[HttpRequestHeader.ContentType] = "application/json";
+                              wc.UploadStringAsync(new Uri(firebaseUrl + path), "PUT", json);
+                          }
                       }
+                      catch { }
                   }
               }
           }
