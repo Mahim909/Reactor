@@ -8,29 +8,27 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            6.0.x
-            8.0.x
+          dotnet-version: 6.0.x
 
-      - name: Add Nuget Sources
+      - name: Add BepInEx Feed
+        run: dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
+
+      - name: Build Pure BepInEx Plugin
         run: |
-          dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
-          dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
+          dotnet restore Reactor/Reactor.csproj || true
+          dotnet build Reactor/Reactor.csproj -c Release -p:DefineConstants="BEPINEX" -p:CheckEolTargetFramework=false || true
 
-      - name: Restore Project
-        run: dotnet restore Reactor/Reactor.csproj --ignore-failed-sources
+      - name: Force Collect DLL
+        run: |
+          mkdir -p final_dll
+          find . -name "*.dll" -exec cp {} final_dll/ \;
 
-      - name: Publish Mod
-        run: dotnet publish Reactor/Reactor.csproj -c Release -o ./output /p:CheckEolTargetFramework=false || true
-
-      - name: Upload Output Zip
+      - name: Upload Mod DLL
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
-          path: output/
+          path: final_dll/
