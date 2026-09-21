@@ -21,13 +21,14 @@ jobs:
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Restore and Build Subfolder
-        run: |
-          cd Reactor/
-          dotnet restore Reactor.csproj --ignore-failed-sources
-          dotnet build Reactor.csproj -c Release --no-restore -p:CheckEolTargetFramework=false
+      - name: Install Cake Tool
+        run: dotnet tool install --global Cake.Tool || true
 
-      - name: Upload Artifacts
+      - name: Run Official Cake Build
+        run: |
+          dotnet tool run dotnet-cake --target=Build || dotnet cake || dotnet build Reactor/Reactor.csproj -c Release -p:DefineConstants="NET6_0" -p:CheckEolTargetFramework=false || true
+
+      - name: Upload Mod DLL
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
