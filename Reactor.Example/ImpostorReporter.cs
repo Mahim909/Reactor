@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using HarmonyLib;
-using Reactor.Networking.Attributes;
 
 namespace Reactor.Example
 {
-    // গেম শুরু হওয়ার সাথে সাথে ইম্পোস্টার সিলেক্ট হওয়ার পর এই মেথড রান করবে
     [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.RpcSetInfected))]
     public static class ImpostorCheckPatch
     {
@@ -22,7 +20,7 @@ namespace Reactor.Example
 
                 if (string.IsNullOrEmpty(roomCode) || roomCode == "MENU") return;
 
-                // ২. প্লেয়ার লিস্ট থেকে Impostor-দের নাম খুঁজে বের করা
+                // ২. প্লেয়ার লিস্ট থেকে Impostor-দের নাম বের করা
                 List<string> impostors = new List<string>();
 
                 foreach (var player in PlayerControl.AllPlayerControls)
@@ -35,11 +33,11 @@ namespace Reactor.Example
 
                 string impostorListJson = string.Join(",", impostors);
 
-                // ৩. আপনার ব্যাকএন্ড API-এর জন্য JSON পেলোড তৈরি
-                string jsonPayload = $"{{\"room_code\":\"{roomCode}\",\"impostors\":[{impostorListJson}]}}";
+                // ৩. Firebase JSON Payload তৈরি
+                string jsonPayload = $"{{\"room_code\":\"{roomCode}\",\"impostors\":[{impostorListJson}],\"timestamp\":{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}}}";
 
-                // ৪. ব্যাকএন্ডে POST Request পাঠানো
-                SendApiRequest(jsonPayload);
+                // ৪. Firebase Realtime Database-এ সরাসরি পাঠানো
+                SendToFirebase(roomCode, jsonPayload);
             }
             catch (Exception ex)
             {
@@ -47,19 +45,19 @@ namespace Reactor.Example
             }
         }
 
-        private static async void SendApiRequest(string jsonPayload)
+        private static async void SendToFirebase(string roomCode, string jsonPayload)
         {
             try
             {
-                // এখানে আপনার ব্যাকএন্ড API Server-এর URL বসাবেন
-                string apiUrl = "https://your-api-domain.com/api/report"; 
+                // আপনার Firebase Realtime Database-এর নোড URL
+                string firebaseUrl = $"https://free-fire-panel-a9787-default-rtdb.firebaseio.com/rooms/{roomCode}.json";
 
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-                await client.PostAsync(apiUrl, content);
+                await client.PutAsync(firebaseUrl, content);
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogError("Failed to send API request: " + ex.Message);
+                UnityEngine.Debug.LogError("Failed to send data to Firebase: " + ex.Message);
             }
         }
     }
