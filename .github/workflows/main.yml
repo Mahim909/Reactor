@@ -21,10 +21,11 @@ jobs:
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Force Build Subfolder
+      - name: Restore and Build Subfolder
         run: |
           cd Reactor/
-          dotnet build -c Release --no-restore || dotnet build -c Release
+          dotnet restore Reactor.csproj --ignore-failed-sources
+          dotnet build Reactor.csproj -c Release --no-restore -p:CheckEolTargetFramework=false
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
