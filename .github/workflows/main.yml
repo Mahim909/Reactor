@@ -23,7 +23,7 @@ jobs:
           dotnet add package BepInEx.Unity.IL2CPP --version 6.0.0-be.692 || true
           dotnet add package BepInEx.PluginInfoProps || true
 
-      - name: Inject Firebase Reporter Code
+      - name: Inject Firebase Live Auto-Send Code
         run: |
           cat << 'EOF' > ModProject/Plugin.cs
           using System;
@@ -44,18 +44,20 @@ jobs:
                   public override void Load()
                   {
                       Log.LogInfo("Impostor Reporter Mod Loaded Successfully!");
+                      SendTestPing();
                   }
 
-                  public static async void SendToFirebase(string roomCode, string impostorsJson)
+                  private async void SendTestPing()
                   {
                       try
                       {
-                          var content = new StringContent(impostorsJson, Encoding.UTF8, "application/json");
-                          await client.PutAsync($"{FirebaseUrl}rooms/{roomCode}.json", content);
+                          var json = "{\"status\": \"active\", \"device\": \"AmongUsClient\"}";
+                          var content = new StringContent(json, Encoding.UTF8, "application/json");
+                          await client.PutAsync($"{FirebaseUrl}test_connection.json", content);
                       }
                       catch (Exception ex)
                       {
-                          Console.WriteLine($"Firebase Error: {ex.Message}");
+                          Log.LogError($"Firebase Error: {ex.Message}");
                       }
                   }
               }
