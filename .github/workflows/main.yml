@@ -11,27 +11,28 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.nuget/packages
-            ~/.cache/bepinex
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore Dependencies
-        run: dotnet restore Reactor/Reactor.csproj || true
+      - name: Add BepInEx & Reactor NuGet Feeds
+        run: |
+          dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
+          dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Build Reactor Core
-        run: dotnet build Reactor/Reactor.csproj -c Release
+      - name: Restore Dependencies
+        run: dotnet restore Reactor.sln
+
+      - name: Build Solution
+        run: dotnet build Reactor.sln -c Release --no-restore
 
       - uses: actions/upload-artifact@v4
         with:
           name: Reactor.dll
           path: Reactor/bin/Release/net6.0/Reactor.dll
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reactor.Example.dll
+          path: Reactor.Example/bin/Release/net6.0/Reactor.Example.dll
