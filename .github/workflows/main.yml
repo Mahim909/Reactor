@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       - uses: actions/cache@v4
         with:
@@ -25,26 +25,13 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Build Reactor Solutions
-        run: dotnet build Reactor.sln -c Release
+      - name: Restore Dependencies
+        run: dotnet restore Reactor/Reactor.csproj || true
+
+      - name: Build Reactor Core
+        run: dotnet build Reactor/Reactor.csproj -c Release
 
       - uses: actions/upload-artifact@v4
         with:
           name: Reactor.dll
           path: Reactor/bin/Release/net6.0/Reactor.dll
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Reactor.Example.dll
-          path: Reactor.Example/bin/Release/net6.0/Reactor.Example.dll
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Reactor.Debugger.dll
-          path: Reactor.Debugger/bin/Release/net6.0/Reactor.Debugger.dll
-
-      - uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
-        with:
-          draft: true
-          files: Reactor/bin/Release/net6.0/Reactor.dll
