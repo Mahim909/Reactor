@@ -25,10 +25,8 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Run the Cake script
-        uses: cake-build/cake-action@v3
-        with:
-          verbosity: Diagnostic
+      - name: Build Reactor Solutions
+        run: dotnet build Reactor.sln -c Release
 
       - uses: actions/upload-artifact@v4
         with:
@@ -37,13 +35,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Reactor.nupkg
-          path: Reactor/bin/Release/Reactor.*.nupkg
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Reactor.Networking.Shared.nupkg
-          path: Reactor.Networking.Shared/bin/Release/*.nupkg
+          name: Reactor.Example.dll
+          path: Reactor.Example/bin/Release/net6.0/Reactor.Example.dll
 
       - uses: actions/upload-artifact@v4
         with:
@@ -55,8 +48,3 @@ jobs:
         with:
           draft: true
           files: Reactor/bin/Release/net6.0/Reactor.dll
-
-      - name: Push nightly NuGet package
-        if: github.repository == 'NuclearPowered/Reactor' && github.ref == 'refs/heads/master'
-        run: |
-          dotnet nuget push {Reactor/bin/Release/Reactor.*.nupkg,Reactor.Networking.Shared/bin/Release/*.nupkg} --source https://nuget.reactor.gg/v3/index.json --api-key ${{ secrets.REACTOR_NUGET_KEY }}
