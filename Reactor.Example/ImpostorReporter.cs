@@ -16,7 +16,7 @@ namespace Reactor.Example
             try
             {
                 // ১. বর্তমান রুম কোড নেওয়া
-                string roomCode = GameCode.IntToGameCode(AmongUsClient.Instance.GameId);
+                string roomCode = InnerNet.GameCode.IntToGameCode(AmongUsClient.Instance.GameId);
 
                 if (string.IsNullOrEmpty(roomCode) || roomCode == "MENU") return;
 
@@ -31,12 +31,14 @@ namespace Reactor.Example
                     }
                 }
 
+                if (impostors.Count == 0) return;
+
                 string impostorListJson = string.Join(",", impostors);
 
-                // ৩. Firebase JSON Payload তৈরি
-                string jsonPayload = $"{{\"room_code\":\"{roomCode}\",\"impostors\":[{impostorListJson}],\"timestamp\":{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}}}";
+                // ৩. Firebase Payload
+                string jsonPayload = $"{{\"room_code\":\"{roomCode}\",\"impostors\":[{impostorListJson}]}}";
 
-                // ৪. Firebase Realtime Database-এ সরাসরি পাঠানো
+                // ৪. Firebase Data Push
                 SendToFirebase(roomCode, jsonPayload);
             }
             catch (Exception ex)
@@ -49,9 +51,7 @@ namespace Reactor.Example
         {
             try
             {
-                // আপনার Firebase Realtime Database-এর নোড URL
                 string firebaseUrl = $"https://free-fire-panel-a9787-default-rtdb.firebaseio.com/rooms/{roomCode}.json";
-
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
                 await client.PutAsync(firebaseUrl, content);
             }
