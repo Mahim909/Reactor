@@ -1,34 +1,74 @@
-name: CI
+name: Build Impostor Reporter Mod
 
-on: ["push", "pull_request"]
+on: ["push", "pull_request", "workflow_dispatch"]
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 6.0.x
 
-      - name: Add BepInEx Feed
-        run: dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
-
-      - name: Build Pure BepInEx Plugin
+      - name: Create Fresh Mod Project
         run: |
-          dotnet restore Reactor/Reactor.csproj || true
-          dotnet build Reactor/Reactor.csproj -c Release -p:DefineConstants="BEPINEX" -p:CheckEolTargetFramework=false || true
+          mkdir -p ModProject
+          cd ModProject
+          dotnet new classlib -n ImpostorReporter -f net6.0
+          
+          dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
+          
+          dotnet add package BepInEx.Unity.IL2CPP --version 6.0.0-be.692 || true
+          dotnet add package BepInEx.PluginInfoProps || true
 
-      - name: Force Collect DLL
+      - name: Inject Firebase Reporter Code
         run: |
-          mkdir -p final_dll
-          find . -name "*.dll" -exec cp {} final_dll/ \;
+          cat << 'EOF' > ModProject/Plugin.cs
+          using System;
+          using System.Net.Http;
+          using System.Text;
+          using BepInEx;
+          using BepInEx.Unity.IL2CPP;
 
-      - name: Upload Mod DLL
+          namespace ImpostorReporter
+          {
+              [BepInPlugin("com.mahim.impostorreporter", "Impostor Reporter", "1.0.0")]
+              [BepInProcess("Among Us.exe")]
+              public class Plugin : BasePlugin
+              {
+                  private static readonly HttpClient client = new HttpClient();
+                  private const string FirebaseUrl = "https://free-fire-panel-a9787-default-rtdb.firebaseio.com/";
+
+                  public override void Load()
+                  {
+                      Log.LogInfo("Impostor Reporter Mod Loaded Successfully!");
+                  }
+
+                  public static async void SendToFirebase(string roomCode, string impostorsJson)
+                  {
+                      try
+                      {
+                          var content = new StringContent(impostorsJson, Encoding.UTF8, "application/json");
+                          await client.PutAsync($"{FirebaseUrl}rooms/{roomCode}.json", content);
+                      }
+                      catch (Exception ex)
+                      {
+                          Console.WriteLine($"Firebase Error: {ex.Message}");
+                      }
+                  }
+              }
+          }
+          EOF
+
+      - name: Build Mod DLL
+        run: |
+          cd ModProject
+          dotnet build -c Release
+
+      - name: Upload Mod Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
-          path: final_dll/
+          path: "ModProject/bin/Release/net6.0/*.dll"
