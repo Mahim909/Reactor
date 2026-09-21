@@ -16,20 +16,22 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Add BepInEx & Reactor Feeds
+      - name: Add NuGet Feeds
         run: |
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Install Cake Tool
-        run: dotnet tool install --global Cake.Tool || true
-
-      - name: Run Official Cake Build
+      - name: Restore Oxygen and Dependencies
         run: |
-          dotnet tool run dotnet-cake --target=Build || dotnet cake || dotnet build Reactor/Reactor.csproj -c Release -p:DefineConstants="NET6_0" -p:CheckEolTargetFramework=false || true
+          dotnet add Reactor/Reactor.csproj package Reactor.Oxygen --version 0.4.0 || true
+          dotnet restore Reactor/Reactor.csproj --ignore-failed-sources
 
-      - name: Upload Mod DLL
+      - name: Force Build Mod
+        run: |
+          dotnet build Reactor/Reactor.csproj -c Release --no-restore -p:CheckEolTargetFramework=false || true
+
+      - name: Collect and Upload DLLs
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
-          path: "**/bin/Release/**/*.dll"
+          path: "**/bin/**/*.dll"
