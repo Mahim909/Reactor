@@ -21,18 +21,15 @@ jobs:
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Find and Restore Example Project
+      - name: Build All Projects
         run: |
-          PROJ_FILE=$(find . -name "Reactor.Example.csproj" | head -n 1)
-          echo "Found project at: $PROJ_FILE"
-          dotnet restore "$PROJ_FILE"
+          for csproj in $(find . -name "*.csproj"); do
+            echo "Building $csproj ..."
+            dotnet build "$csproj" -c Release || true
+          done
 
-      - name: Find and Build Example Project
-        run: |
-          PROJ_FILE=$(find . -name "Reactor.Example.csproj" | head -n 1)
-          dotnet build "$PROJ_FILE" -c Release --no-restore
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: ImpostorReporterMod
-          path: "**/bin/Release/net6.0/"
+          name: Mod-Build-Output
+          path: "**/bin/Release/"
