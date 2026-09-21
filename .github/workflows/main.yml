@@ -16,19 +16,20 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Add BepInEx & Reactor NuGet Feeds
+      - name: Add All Required NuGet Feeds
         run: |
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
+          dotnet nuget add source https://nuget.il2cpp.dev/v3/index.json -n Il2Cpp || true
 
-      - name: Build Example Plugin Only
-        run: |
-          TARGET_PROJ=$(find . -maxdepth 2 -name "Reactor.Example.csproj" -o -name "*.csproj" | grep -v "Reactor.csproj" | head -n 1)
-          echo "Building Target Project: $TARGET_PROJ"
-          dotnet build "$TARGET_PROJ" -c Release --no-restore || dotnet build "$TARGET_PROJ" -c Release
+      - name: Restore Project Dependencies
+        run: dotnet restore Reactor/Reactor.csproj --disable-parallel
 
-      - name: Upload Artifacts
+      - name: Build Reactor Core
+        run: dotnet build Reactor/Reactor.csproj -c Release --no-restore -p:CheckEolTargetFramework=false || dotnet build Reactor/Reactor.csproj -c Release -p:CheckEolTargetFramework=false
+
+      - name: Upload Mod DLL
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
-          path: "**/bin/Release/*/*.dll"
+          path: "**/bin/Release/**/*.dll"
