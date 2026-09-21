@@ -18,17 +18,19 @@ jobs:
             6.0.x
             8.0.x
 
-      - name: Add Nuget Source
+      - name: Add Nuget Sources
         run: |
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           dotnet nuget add source https://nuget.reactor.gg/v3/index.json -n Reactor || true
 
-      - name: Build Example Project
-        run: |
-          dotnet build Reactor.Example/Reactor.Example.csproj -c Release -f net6.0 || dotnet build Reactor/Reactor.csproj -c Release -f net6.0 --no-restore || true
+      - name: Restore Project
+        run: dotnet restore Reactor/Reactor.csproj --ignore-failed-sources
 
-      - name: Force Zip Output
+      - name: Publish Mod
+        run: dotnet publish Reactor/Reactor.csproj -c Release -o ./output /p:CheckEolTargetFramework=false || true
+
+      - name: Upload Output Zip
         uses: actions/upload-artifact@v4
         with:
           name: ImpostorReporterMod
-          path: "**/*.dll"
+          path: output/
