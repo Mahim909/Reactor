@@ -16,7 +16,7 @@ jobs:
         run: |
           mkdir -p ModProject
           cd ModProject
-          dotnet new classlib -n ImpostorReporter -f net6.0
+          dotnet new classlib --output . --force -f net6.0
           
           dotnet nuget add source https://nuget.bepinex.dev/v3/index.json -n BepInEx || true
           
